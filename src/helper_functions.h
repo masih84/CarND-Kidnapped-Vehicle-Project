@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include "map.h"
+#include <iostream>
 
 // for portability of M_PI (Vis Studio, MinGW, etc.)
 #ifndef M_PI
@@ -246,6 +247,57 @@ inline bool read_landmark_data(std::string filename,
     observations.push_back(meas);
   }
   return true;
+}
+
+/**
+ * Rotate and translate observation from vehicle coordinate to map coordinate 
+ * @param obs observation in vehicle coordinate.
+ * @param x_trans: particle x in map coordinate
+ * @param x_trans: particle y in map coordinate
+ * @param theta_rot: particle heading
+ * @output observation in map coordinate
+ */
+
+inline LandmarkObs Transformations(LandmarkObs obs,  double x_trans, double y_trans, double theta_rot) {
+
+	LandmarkObs obs_map;
+
+	obs_map.x = x_trans + (cos(theta_rot) * obs.x) - (sin(theta_rot) *  obs.y);
+
+	// transform to map y coordinate
+	obs_map.y = y_trans + (sin(theta_rot) *  obs.x) + (cos(theta_rot) *  obs.y);
+
+	obs_map.id = obs.id;
+
+
+	return obs_map;
+}
+
+/**
+ * Calculate the probebility of observing a landmark
+ * @param sig_x is standard deviation of landmark in x direction
+ * @param sig_y is standard deviation of landmark in y direction
+ * @param x_obs is observarion x in map coordinate
+ * @param y_obs is observarion y in map coordinate
+ * @param mu_x is landmark x in map coordinate
+ * @param mu_y is landmark y in map coordinate
+ * @output weight of observation 
+ */
+inline double multiv_prob(double sig_x, double sig_y, double x_obs, double y_obs,
+	double mu_x, double mu_y) {
+	// calculate normalization term
+	double gauss_norm;
+	gauss_norm = 1. / (2. * M_PI * sig_x * sig_y);
+
+	// calculate exponent
+	double exponent;
+	exponent = (pow(x_obs - mu_x, 2) / (2. * pow(sig_x, 2)))
+		+ (pow(y_obs - mu_y, 2) / (2. * pow(sig_y, 2)));
+
+	// calculate weight using normalization terms and exponent
+	double weight;
+	weight = gauss_norm * exp(-1. * exponent);
+	return weight;
 }
 
 #endif  // HELPER_FUNCTIONS_H_
